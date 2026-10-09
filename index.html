@@ -1,0 +1,1032 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>小动物限时对战</title>
+<link rel="stylesheet" href="https://miaoda.feishu.cn/fonts/css2?family=Noto+Sans+SC:wght@400;700;900&display=swap">
+<style>
+/* ===== 基础 ===== */
+:root{
+  --ink:#3A2D5C;
+  --ink2:#7A6A9C;
+  --bg:#FFF9EE;
+  --card:#FFFFFF;
+  --line:#EADFC9;
+  --red:#FF6B6B;
+  --blue:#5B9BFF;
+  --ok:#22A06B;
+  --err:#E5484D;
+  --orange:#FF7A3D;
+  --orangeD:#C94F1D;
+  --dark:#1E1B2E;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  font-family:"Noto Sans SC","PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+  background:var(--bg);color:var(--ink);
+  -webkit-font-smoothing:antialiased;
+  -webkit-tap-highlight-color:transparent;
+  user-select:none;-webkit-user-select:none;
+  touch-action:manipulation;
+}
+button{font-family:inherit}
+.hidden{display:none!important}
+
+/* ===== 设置屏 ===== */
+#setup{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:30px;padding:40px 20px}
+.main-title{
+  font-size:62px;font-weight:900;letter-spacing:4px;text-align:center;color:var(--ink);
+  display:flex;align-items:center;gap:22px;
+}
+.team-dot{width:54px;height:54px;border-radius:50%;flex:none;box-shadow:0 6px 12px rgba(0,0,0,.15)}
+.team-dot.red{background:linear-gradient(145deg,#FF8A7A,#E04343)}
+.team-dot.blue{background:linear-gradient(145deg,#7FB0FF,#2D6CDF)}
+.sub-title{font-size:26px;font-weight:700;color:var(--ink2);text-align:center;letter-spacing:1px}
+
+.timer-box{
+  display:flex;align-items:center;gap:32px;
+  background:#F1F1F3;border-radius:44px;border:4px solid #E4E4E8;
+  padding:42px 58px;box-shadow:0 12px 26px rgba(122,93,48,.14),inset 0 2px 6px rgba(0,0,0,.06);
+}
+.tcard{display:flex;flex-direction:column;align-items:center;gap:16px}
+.step{
+  width:84px;height:84px;border-radius:50%;border:none;cursor:pointer;
+  background:#fff;color:var(--ink);font-size:44px;font-weight:900;line-height:1;
+  box-shadow:0 6px 0 #D8D8DE,0 8px 14px rgba(0,0,0,.12);
+  transition:transform .08s,box-shadow .08s;
+}
+.step:hover{filter:brightness(.98)}
+.step:active{transform:translateY(5px);box-shadow:0 1px 0 #D8D8DE}
+.step:focus-visible{outline:4px solid var(--orange);outline-offset:3px}
+.tnum{display:flex;gap:10px}
+.tnum span{
+  width:94px;height:128px;display:flex;align-items:center;justify-content:center;
+  background:#fff;border-radius:20px;border:4px solid #E0E0E6;
+  font-size:94px;font-weight:900;color:#3B3B48;line-height:1;
+  font-variant-numeric:tabular-nums;
+}
+.tunit{font-size:26px;font-weight:900;color:#7A7A88;letter-spacing:2px}
+.tcolon{display:flex;flex-direction:column;gap:8px;align-items:center}
+.tcolon span{font-size:52px;font-weight:900;color:#3B3B48;line-height:.5}
+.start-btn{
+  font-size:40px;font-weight:900;color:#fff;cursor:pointer;
+  background:linear-gradient(145deg,#FF9A52,#F26B2E);
+  border:none;border-radius:999px;padding:26px 92px;letter-spacing:4px;
+  box-shadow:0 9px 0 var(--orangeD),0 16px 26px rgba(242,107,46,.35);
+  transition:transform .08s,box-shadow .08s,filter .15s;
+}
+.start-btn:hover{filter:brightness(1.04)}
+.start-btn:active{transform:translateY(7px);box-shadow:0 2px 0 var(--orangeD)}
+.start-btn:focus-visible{outline:4px solid var(--ink);outline-offset:5px}
+.setup-note{min-height:38px;font-size:26px;font-weight:900;color:var(--err);text-align:center}
+
+/* ===== 对战屏 ===== */
+#battle{position:relative;height:100vh;display:flex;overflow:hidden}
+.vs-line{
+  position:absolute;left:50%;top:0;bottom:0;width:5px;
+  background:var(--dark);transform:translateX(-50%);z-index:5;pointer-events:none;
+}
+.timer-pill{
+  position:absolute;top:16px;left:50%;transform:translateX(-50%);z-index:10;
+  background:#fff;border:4px solid var(--dark);border-radius:999px;
+  padding:8px 30px;font-size:38px;font-weight:900;letter-spacing:3px;color:var(--ink);
+  font-variant-numeric:tabular-nums;box-shadow:0 8px 16px rgba(0,0,0,.18);
+  white-space:nowrap;
+}
+.timer-pill.warn{color:var(--err);border-color:var(--err);animation:pulse 1s ease infinite}
+@keyframes pulse{0%,100%{transform:translateX(-50%) scale(1)}50%{transform:translateX(-50%) scale(1.07)}}
+
+.side{flex:1 1 50%;display:flex;flex-direction:column;padding:104px 28px 30px;position:relative;overflow:hidden}
+.side.left{background:#FFF3EC}
+.side.right{background:#EDF4FF}
+.side-head{display:flex;align-items:center;gap:14px}
+.team-badge{
+  width:94px;height:94px;border-radius:50%;color:#fff;flex:none;
+  display:flex;align-items:center;justify-content:center;
+  font-size:50px;font-weight:900;box-shadow:0 6px 12px rgba(0,0,0,.16);
+}
+.badge-red{background:linear-gradient(145deg,#FF8A7A,#E04343)}
+.badge-blue{background:linear-gradient(145deg,#7FB0FF,#2D6CDF)}
+.team-name{font-size:58px;font-weight:900}
+.qno{
+  margin-left:auto;font-size:28px;font-weight:700;color:var(--ink2);
+  background:#fff;padding:9px 24px;border-radius:999px;border:3px solid var(--line);
+  white-space:nowrap;
+}
+.qarea{flex:1;display:flex;overflow:auto;min-height:0;padding:12px 2px}
+/* 答题区图片白底与背景融合，视觉上透明化（去白底） */
+.qarea img{mix-blend-mode:multiply}
+/* 答案区：固定在检查按钮上方，不随题目滚动，孩子抬手就能点到 */
+.answer-slot{
+  flex:none;display:flex;justify-content:center;align-items:center;
+  padding:6px 10px 4px;min-height:0;
+}
+.answer-slot .opts,.answer-slot .cmp-line-wrap{max-width:100%}
+/* 答案区图片同样去白底 */
+.answer-slot img{mix-blend-mode:multiply}
+.q-wrap{display:flex;flex-direction:column;align-items:center;gap:24px;margin:auto;width:100%;max-width:800px}
+.prepare{margin:auto;font-size:34px;font-weight:900;color:var(--ink2)}
+.result-card{margin:auto}
+
+/* 题目通用 */
+.task{font-size:56px;font-weight:900;text-align:center;line-height:1.4;max-width:760px}
+.task b{color:#E8590C}
+.inline-ico{display:inline-flex;vertical-align:middle;margin:0 4px}
+.inline-ico img{width:82px;height:82px;object-fit:contain}
+.pic-grid{display:flex;flex-wrap:wrap;justify-content:center;gap:16px;max-width:760px}
+.pic-grid .ani{width:156px;height:156px;object-fit:contain;flex:none}
+.opts{display:flex;gap:22px;flex-wrap:wrap;justify-content:center;max-width:760px}
+.opt{
+  min-width:156px;padding:26px 42px;border-radius:30px;border:4px solid #E4DAC8;
+  background:#fff;color:var(--ink);font-size:58px;font-weight:900;cursor:pointer;
+  box-shadow:0 5px 0 #E4DAC8;font-variant-numeric:tabular-nums;
+  transition:transform .08s,box-shadow .08s,border-color .12s,background .12s,color .12s;
+}
+.opt:hover{transform:translateY(-2px)}
+.opt:active{transform:translateY(3px);box-shadow:0 1px 0 #E4DAC8}
+.side.left .opt.on{background:linear-gradient(145deg,#FF8A7A,#E04343);border-color:#C92F2F;color:#fff;box-shadow:0 5px 0 #C92F2F}
+.side.right .opt.on{background:linear-gradient(145deg,#7FB0FF,#2D6CDF);border-color:#1F55B8;color:#fff;box-shadow:0 5px 0 #1F55B8}
+
+/* 题型：比多少（只留图片，上下一一对应；答案区无灰色背景） */
+.q3-pairs{display:flex;flex-direction:column;gap:18px;width:100%;max-width:720px}
+.q3-line{display:grid;gap:14px;justify-items:center;align-items:center}
+.q3-line .slot{width:100%;display:flex;align-items:center;justify-content:center}
+.q3-line .slot img{width:100%;max-width:128px;height:auto;object-fit:contain}
+.cmp-line-wrap{display:flex;gap:28px;justify-content:center;flex-wrap:wrap}
+.cmp-line{display:flex;align-items:center;gap:14px;padding:12px 10px}
+.cmp-mini{display:inline-flex}
+.cmp-mini img{width:82px;height:82px;object-fit:contain}
+.cmp-word{font-size:50px;font-weight:900;color:#7A6A4F}
+.cmp-pick{display:flex;gap:12px;margin-left:8px}
+.opt.sm{min-width:120px;padding:15px 36px;font-size:50px;border-radius:999px}
+
+/* 题型：谁最多/最少（题干 + 三行逐列对齐图片 + 三个图片选项） */
+.q3b{display:flex;flex-direction:column;gap:18px;align-items:center;width:100%;max-width:800px}
+.q3b .q3-line{gap:12px}
+.q3b .q3-line .slot img{width:100%;max-width:104px;height:auto;object-fit:contain}
+.q3b-opts{display:flex;gap:22px;justify-content:center}
+.q3b-opt{
+  width:180px;height:180px;border-radius:34px;border:5px solid #E4DAC8;background:#fff;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;
+  box-shadow:0 5px 0 #E4DAC8;transition:transform .08s,border-color .12s,background .12s;
+}
+.q3b-opt img{width:128px;height:128px;object-fit:contain}
+.q3b-opt:hover{transform:scale(1.05)}
+.side.left .q3b-opt.on{border-color:#E04343;background:#FFEDE8}
+.side.right .q3b-opt.on{border-color:#2D6CDF;background:#E7F0FF}
+
+/* 题型：找第几 */
+.row-animals{display:flex;align-items:center;gap:14px;flex-wrap:nowrap;justify-content:center}
+.row-animals img{width:124px;height:124px;object-fit:contain;flex:none}
+.row-animals img.row-hl{box-shadow:0 0 0 9px var(--ok);border-radius:16px}
+.dir-arrow{display:inline-flex;flex:none}
+.choice{
+  width:210px;border-radius:34px;border:4px solid #E4DAC8;background:#fff;cursor:pointer;
+  padding:20px 12px;display:flex;align-items:center;justify-content:center;
+  box-shadow:0 5px 0 #E4DAC8;transition:transform .08s,border-color .12s;
+}
+.choice img{width:146px;height:146px;object-fit:contain}
+.side.left .choice.on{border-color:#E04343;background:#FFEDE8}
+.side.right .choice.on{border-color:#2D6CDF;background:#E7F0FF}
+
+/* 题型：毛毛虫找规律 */
+.caterpillar{display:flex;align-items:center;gap:6px;flex-wrap:nowrap;justify-content:center}
+.cat-head{width:172px;height:172px;object-fit:contain;flex:none}
+.seg{
+  width:114px;height:114px;border-radius:50%;flex:none;
+  background:linear-gradient(145deg,#5FBF5F,#3FA24B);color:#fff;
+  display:flex;align-items:center;justify-content:center;
+  font-size:66px;font-weight:900;box-shadow:0 5px 10px rgba(63,162,75,.35);
+  font-variant-numeric:tabular-nums;
+}
+.seg.blank{background:#fff;color:#B9A9D0;border:4px dashed #B9A9D0;box-shadow:none}
+
+/* 题型：圈一圈 */
+/* 题型：画一画（格子间距拉开，图片加大） */
+.q8-shape-btn{
+  width:222px;height:222px;border-radius:42px;border:6px dashed #D9CFBD;background:#fff;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;flex:none;
+  box-shadow:0 6px 12px rgba(0,0,0,.08);transition:transform .1s,border-color .12s;
+}
+.q8-shape-btn:hover{border-color:var(--orange);transform:scale(1.05)}
+.q8-shape-btn .shape-svg{width:140px;height:140px}
+.shape-svg{display:inline-block;width:80px;height:80px;flex:none}
+.q8-inline-shape{display:inline-flex;vertical-align:middle;margin:0 8px}
+.q8-grid{display:flex;flex-direction:column;gap:20px;max-width:780px;width:100%}
+.q8-row{display:grid;grid-template-columns:repeat(10,minmax(40px,1fr));gap:16px}
+.q8-cell{height:120px;display:flex;align-items:center;justify-content:center}
+.q8-cell img{width:76px;height:76px;object-fit:contain}
+.q8-cell .shape-svg{width:64px;height:64px}
+
+/* 检查按钮与提示 */
+.side-note{min-height:50px;font-size:36px;font-weight:900;color:var(--err);text-align:center;padding:0 10px}
+.check-btn{
+  height:128px;border-radius:999px;border:none;color:#fff;cursor:pointer;flex:none;
+  font-size:54px;font-weight:900;letter-spacing:6px;
+  transition:transform .08s,box-shadow .08s,filter .15s;
+}
+.check-btn.red{background:linear-gradient(145deg,#FF8A7A,#E04343);box-shadow:0 8px 0 #B32E2E,0 12px 18px rgba(224,67,67,.3)}
+.check-btn.blue{background:linear-gradient(145deg,#7FB0FF,#2D6CDF);box-shadow:0 8px 0 #1F55B8,0 12px 18px rgba(45,108,223,.3)}
+.check-btn:hover{filter:brightness(1.04)}
+.check-btn:active{transform:translateY(6px)}
+.check-btn.red:active{box-shadow:0 2px 0 #B32E2E,0 8px 12px rgba(224,67,67,.25)}
+.check-btn.blue:active{box-shadow:0 2px 0 #1F55B8,0 8px 12px rgba(45,108,223,.25)}
+.check-btn.disabled{opacity:.45;pointer-events:none}
+
+/* √ × 卡通贴纸 */
+.fb-sticker{
+  position:absolute;inset:0;z-index:20;
+  display:flex;align-items:center;justify-content:center;
+  background:rgba(255,255,255,.35);pointer-events:none;
+}
+.fb-sticker svg{
+  width:190px;height:190px;
+  animation:popIn .4s cubic-bezier(.34,1.56,.64,1);
+  filter:drop-shadow(0 12px 18px rgba(0,0,0,.22));
+}
+@keyframes popIn{0%{transform:scale(.2);opacity:0}60%{transform:scale(1.18)}100%{transform:scale(1);opacity:1}}
+
+/* 结算卡片 */
+.result-card{
+  background:#fff;border:5px solid var(--line);border-radius:34px;
+  padding:34px 52px;display:flex;flex-direction:column;gap:14px;text-align:center;
+  box-shadow:0 14px 26px rgba(0,0,0,.14);animation:popIn .45s cubic-bezier(.34,1.56,.64,1);
+}
+.res-line{font-size:34px;font-weight:900;color:var(--ink);white-space:nowrap}
+.res-line b{font-size:50px;font-weight:900;padding:0 8px;font-variant-numeric:tabular-nums}
+.side.left .res-line b{color:#E04343}
+.side.right .res-line b{color:#2D6CDF}
+
+/* 3-2-1 倒计时 */
+.countdown{
+  position:fixed;inset:0;z-index:30;
+  display:flex;align-items:center;justify-content:center;
+  background:rgba(255,255,255,.74);
+}
+.cd-num{
+  width:250px;height:250px;border-radius:50%;
+  background:linear-gradient(145deg,#FF9A52,#F26B2E);color:#fff;
+  display:flex;align-items:center;justify-content:center;
+  font-size:150px;font-weight:900;
+  box-shadow:0 20px 44px rgba(242,107,46,.42);
+  animation:cdPop .55s ease;
+}
+@keyframes cdPop{0%{transform:scale(.35);opacity:0}55%{transform:scale(1.14)}100%{transform:scale(1);opacity:1}}
+
+/* 重新开始 */
+.restart-overlay{
+  position:fixed;inset:0;z-index:40;background:rgba(30,27,46,.5);
+  display:flex;align-items:center;justify-content:center;
+}
+.restart-btn{
+  font-size:46px;font-weight:900;color:#fff;cursor:pointer;letter-spacing:6px;
+  background:linear-gradient(145deg,#FF9A52,#F26B2E);border:none;border-radius:999px;
+  padding:30px 96px;box-shadow:0 10px 0 var(--orangeD),0 20px 34px rgba(0,0,0,.28);
+  transition:transform .08s,box-shadow .08s;animation:popIn .5s cubic-bezier(.34,1.56,.64,1);
+}
+.restart-btn:active{transform:translateY(8px);box-shadow:0 2px 0 var(--orangeD)}
+
+/* 抖动 */
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-10px)}75%{transform:translateX(10px)}}
+.shake{animation:shake .35s}
+
+/* ===== 响应式 ===== */
+@media (max-width:1100px){
+  .task{font-size:47px}
+  .inline-ico img{width:68px;height:68px}
+  .pic-grid .ani{width:116px;height:116px}
+  .opt{min-width:138px;padding:22px 30px;font-size:46px}
+  .opt.sm{min-width:102px;padding:11px 24px;font-size:42px}
+  .q3-line{gap:12px}
+  .q3-line .slot img{max-width:94px}
+  .cmp-mini img{width:64px;height:64px}
+  .cmp-word{font-size:44px}
+  .q3b .q3-line .slot img{max-width:78px}
+  .q3b-opt{width:150px;height:150px}
+  .q3b-opt img{width:106px;height:106px}
+  .row-animals img{width:84px;height:84px}
+  .seg{width:100px;height:100px;font-size:60px}
+  .cat-head{width:148px;height:148px}
+  .choice{width:174px}
+  .choice img{width:112px;height:112px}
+  .q8-shape-btn{width:188px;height:188px}
+  .q8-shape-btn .shape-svg{width:114px;height:114px}
+  .q8-cell{height:100px}
+  .q8-cell img{width:62px;height:62px}
+  .q8-cell .shape-svg{width:52px;height:52px}
+  .team-name{font-size:52px}
+  .team-badge{width:84px;height:84px;font-size:45px}
+  .check-btn{height:124px;font-size:49px}
+  .timer-pill{font-size:32px;padding:6px 24px}
+  .side{padding-top:92px}
+}
+@media (max-width:760px){
+  .main-title{font-size:42px;gap:14px}
+  .team-dot{width:40px;height:40px}
+  .sub-title{font-size:21px}
+  .timer-box{gap:16px;padding:28px 26px;border-radius:32px}
+  .tnum span{width:66px;height:92px;font-size:66px;border-radius:14px}
+  .step{width:62px;height:62px;font-size:34px}
+  .tunit{font-size:21px}
+  .tcolon span{font-size:40px}
+  .start-btn{font-size:32px;padding:20px 64px}
+  .side{padding:80px 14px 18px}
+  .task{font-size:40px}
+  .inline-ico img{width:64px;height:64px}
+  .pic-grid{gap:10px}
+  .pic-grid .ani{width:94px;height:94px}
+  .opt{min-width:116px;padding:17px 22px;font-size:42px}
+  .opts{gap:13px}
+  .q3-line{gap:9px}
+  .q3-line .slot img{max-width:68px}
+  .cmp-line{padding:12px 14px;gap:9px}
+  .cmp-word{font-size:38px}
+  .cmp-mini img{width:52px;height:52px}
+  .opt.sm{min-width:84px;padding:10px 20px;font-size:36px}
+  .q3b{gap:12px}
+  .q3b .q3-line .slot img{max-width:56px}
+  .q3b-opt{width:114px;height:114px}
+  .q3b-opt img{width:82px;height:82px}
+  .row-animals img{width:66px;height:66px}
+  .seg{width:92px;height:92px;font-size:56px}
+  .cat-head{width:120px;height:120px}
+  .choice{width:140px}
+  .choice img{width:86px;height:86px}
+  .q8-shape-btn{width:144px;height:144px}
+  .q8-shape-btn .shape-svg{width:88px;height:88px}
+  .q8-grid{gap:14px}
+  .q8-cell{height:84px}
+  .q8-cell img{width:56px;height:56px}
+  .q8-cell .shape-svg{width:44px;height:44px}
+  .team-badge{width:74px;height:74px;font-size:40px}
+  .team-name{font-size:40px}
+  .qno{font-size:23px;padding:7px 17px}
+  .check-btn{height:114px;font-size:44px}
+  .side-note{font-size:30px}
+  .fb-sticker svg{width:140px;height:140px}
+  .res-line{font-size:27px}
+  .res-line b{font-size:40px}
+  .result-card{padding:26px 34px}
+  .timer-pill{font-size:27px;padding:5px 18px;top:10px}
+  .cd-num{width:190px;height:190px;font-size:112px}
+  .restart-btn{font-size:36px;padding:24px 66px}
+}
+@media (prefers-reduced-motion:reduce){
+  *{animation:none!important;transition:none!important}
+}
+</style>
+</head>
+<body>
+
+<!-- ===== 设置屏 ===== -->
+<section id="setup">
+  <h1 class="main-title"><span class="team-dot red"></span>小动物限时对战<span class="team-dot blue"></span></h1>
+  <p class="sub-title">数一数 · 比一比 · 看谁做得又快又对</p>
+  <div class="timer-box" id="timerBox">
+    <div class="tcard">
+      <button class="step" data-unit="min" data-dir="up" aria-label="分钟加">+</button>
+      <div class="tnum" id="minDigits"><span>0</span><span>5</span></div>
+      <span class="tunit">分</span>
+      <button class="step" data-unit="min" data-dir="down" aria-label="分钟减">-</button>
+    </div>
+    <div class="tcolon"><span>·</span><span>·</span></div>
+    <div class="tcard">
+      <button class="step" data-unit="sec" data-dir="up" aria-label="秒加">+</button>
+      <div class="tnum" id="secDigits"><span>0</span><span>0</span></div>
+      <span class="tunit">秒</span>
+      <button class="step" data-unit="sec" data-dir="down" aria-label="秒减">-</button>
+    </div>
+  </div>
+  <button class="start-btn" id="startBtn">开始对战</button>
+  <div class="setup-note" id="setupNote"></div>
+</section>
+
+<!-- ===== 对战屏 ===== -->
+<section id="battle" class="hidden">
+  <div class="vs-line"></div>
+  <div class="timer-pill" id="timerPill">05:00</div>
+
+  <aside class="side left" id="sideL">
+    <header class="side-head">
+      <span class="team-badge badge-red">红</span>
+      <span class="team-name">红队</span>
+      <span class="qno" id="qnoL">第 1 题</span>
+    </header>
+    <div class="qarea" id="qareaL"></div>
+    <div class="answer-slot" id="ansL"></div>
+    <div class="side-note" id="noteL"></div>
+    <button class="check-btn red" id="checkL">检查</button>
+  </aside>
+
+  <aside class="side right" id="sideR">
+    <header class="side-head">
+      <span class="team-badge badge-blue">蓝</span>
+      <span class="team-name">蓝队</span>
+      <span class="qno" id="qnoR">第 1 题</span>
+    </header>
+    <div class="qarea" id="qareaR"></div>
+    <div class="answer-slot" id="ansR"></div>
+    <div class="side-note" id="noteR"></div>
+    <button class="check-btn blue" id="checkR">检查</button>
+  </aside>
+
+  <div class="countdown hidden" id="countdown"><div class="cd-num" id="cdNum">3</div></div>
+  <div class="restart-overlay hidden" id="restartOverlay">
+    <button class="restart-btn" id="restartBtn">重新开始</button>
+  </div>
+</section>
+
+<script>
+(function(){
+"use strict";
+
+/* ===== 素材（沿用原练习网页的图片） ===== */
+var ANIMALS = [
+  {name:"小兔", img:"https://aka.doubaocdn.com/s/JNVNjcO778"},
+  {name:"小猫", img:"https://aka.doubaocdn.com/s/GAUBSRgvbU"},
+  {name:"小狗", img:"https://aka.doubaocdn.com/s/VfTRmzB8gY"},
+  {name:"小熊", img:"https://aka.doubaocdn.com/s/HacVypzSyU"},
+  {name:"小猪", img:"https://aka.doubaocdn.com/s/Uzwm8Qp5LK"},
+  {name:"小鸭", img:"https://aka.doubaocdn.com/s/O5JsfAN9lQ"},
+  {name:"小鸡", img:"https://aka.doubaocdn.com/s/34bsJNV1gM"},
+  {name:"青蛙", img:"https://aka.doubaocdn.com/s/9cGqObzBZQ"},
+  {name:"熊猫", img:"https://aka.doubaocdn.com/s/XeRXRe5woX"},
+  {name:"猴子", img:"https://aka.doubaocdn.com/s/buQJjB7Vrp"},
+  {name:"老虎", img:"https://aka.doubaocdn.com/s/wYUHFpVRPG"},
+  {name:"长颈鹿", img:"https://aka.doubaocdn.com/s/KhRzEeep7y"},
+  {name:"大象", img:"https://aka.doubaocdn.com/s/BGxVudGnq6"},
+  {name:"企鹅", img:"https://aka.doubaocdn.com/s/wVNUzYUnyo"},
+  {name:"奶牛", img:"https://aka.doubaocdn.com/s/gQa93sgIzB"},
+  {name:"绵羊", img:"https://aka.doubaocdn.com/s/6KXXTKcGCY"},
+  {name:"小鹿", img:"https://aka.doubaocdn.com/s/rHEw59JdUs"},
+  {name:"狐狸", img:"https://aka.doubaocdn.com/s/mf7B6AUaCd"},
+  {name:"刺猬", img:"https://aka.doubaocdn.com/s/volNyc9fUI"},
+  {name:"恐龙", img:"https://aka.doubaocdn.com/s/2VTXFRaLlW"}
+];
+var ITEMS = [
+  {name:"苹果", img:"https://aka.doubaocdn.com/s/6xYq67UPJV"},
+  {name:"香蕉", img:"https://aka.doubaocdn.com/s/tNVbv1UV3h"},
+  {name:"铅笔", img:"https://aka.doubaocdn.com/s/AlDaMsMmDA"},
+  {name:"花朵", img:"https://aka.doubaocdn.com/s/re3AUu93w5"},
+  {name:"星星", img:"https://aka.doubaocdn.com/s/s2AOLrkSMM"},
+  {name:"气球", img:"https://aka.doubaocdn.com/s/dPJMPL5Ww5"},
+  {name:"小鱼", img:"https://aka.doubaocdn.com/s/JSQC7Pk5k4"},
+  {name:"蘑菇", img:"https://aka.doubaocdn.com/s/bqviBHsTDk"},
+  {name:"棒棒糖", img:"https://aka.doubaocdn.com/s/GCud8j8v5Y"},
+  {name:"皮球", img:"https://aka.doubaocdn.com/s/SFT8TobOmB"}
+];
+var CATERPILLAR_IMG = "https://aka.doubaocdn.com/s/FENgz3HzlM";
+
+/* ===== 音效（Web Audio 合成） ===== */
+var actx = null;
+function ensureCtx(){
+  if (!actx){
+    try { actx = new (window.AudioContext || window.webkitAudioContext)(); } catch(e){}
+  }
+  if (actx && actx.state === "suspended") actx.resume();
+}
+function tone(freq, delay, dur){
+  if (!actx) return;
+  var o = actx.createOscillator(), g = actx.createGain();
+  o.type = "sine"; o.frequency.value = freq;
+  g.gain.setValueAtTime(0.0001, actx.currentTime + delay);
+  g.gain.exponentialRampToValueAtTime(0.2, actx.currentTime + delay + 0.02);
+  g.gain.exponentialRampToValueAtTime(0.0001, actx.currentTime + delay + dur);
+  o.connect(g); g.connect(actx.destination);
+  o.start(actx.currentTime + delay);
+  o.stop(actx.currentTime + delay + dur + 0.05);
+}
+function sfxOk(){ ensureCtx(); tone(523,0,.16); tone(784,.12,.22); }
+function sfxErr(){ ensureCtx(); tone(220,0,.22); }
+function sfxTick(){ ensureCtx(); tone(880,0,.09); }
+function sfxGo(){ ensureCtx(); tone(660,0,.14); tone(880,.13,.24); }
+function sfxEnd(){ ensureCtx(); tone(523,0,.18); tone(392,.16,.18); tone(330,.34,.34); }
+
+/* ===== 工具 ===== */
+function rand(n,m){ return Math.floor(Math.random()*(m-n+1))+n; }
+function pick(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
+function shuffle(arr){
+  var a = arr.slice();
+  for (var i=a.length-1;i>0;i--){
+    var j = Math.floor(Math.random()*(i+1));
+    var t=a[i]; a[i]=a[j]; a[j]=t;
+  }
+  return a;
+}
+function pickItems(n){
+  var pool = ITEMS.slice(), out = [];
+  while (out.length<n && pool.length){
+    out.push(pool.splice(Math.floor(Math.random()*pool.length),1)[0]);
+  }
+  return out;
+}
+function distinctOpts(correct, lo, hi){
+  var pool = [], out = [correct];
+  for (var i=lo;i<=hi;i++) if (i!==correct) pool.push(i);
+  shuffle(pool);
+  while (out.length<4 && pool.length) out.push(pool.pop());
+  return shuffle(out);
+}
+
+/* ===== 题目生成（改编自原网页 6 种题型） ===== */
+function genQ1(){ /* 数一数 */
+  var total = rand(2,10);
+  var options = distinctOpts(total,1,10);
+  return { type:1, animal:pick(ANIMALS), total:total, options:options, answer:options.indexOf(total) };
+}
+function genQ2(){ /* 比多少（原网页样式：两行对照 + A比B / B比A 选多、少） */
+  var pair = pickItems(2);
+  var ca = rand(1,8), cb = rand(1,8);
+  while (cb === ca){ cb = rand(1,8); }
+  return { type:2, a:pair[0], b:pair[1], ca:ca, cb:cb,
+    ans1: ca>cb ? 0 : 1,   /* A 比 B：0=多 1=少 */
+    ans2: cb>ca ? 0 : 1 }; /* B 比 A：0=多 1=少 */
+}
+function genQ3(){ /* 谁最多/最少 */
+  var items = pickItems(3);
+  var pool = [], counts = [];
+  for (var i=1;i<=7;i++) pool.push(i);
+  for (var k=0;k<3;k++){ counts.push(pool.splice(Math.floor(Math.random()*pool.length),1)[0]); }
+  var groups = items.map(function(it,j){ return { name:it.name, img:it.img, count:counts[j] }; });
+  var maxIdx=0, minIdx=0;
+  for (var j=1;j<3;j++){
+    if (counts[j]>counts[maxIdx]) maxIdx=j;
+    if (counts[j]<counts[minIdx]) minIdx=j;
+  }
+  var ask = Math.random()<0.5 ? "max" : "min";
+  return { type:3, groups:groups, ask:ask, answer: ask==="max"?maxIdx:minIdx };
+}
+function genQ4(){ /* 找第几 */
+  var n = rand(6,7);
+  var pool = ANIMALS.slice(), row = [];
+  while (row.length<n){ row.push(pool.splice(Math.floor(Math.random()*pool.length),1)[0]); }
+  var dir = Math.random()<0.5 ? "L" : "R";
+  var idx = rand(0,n-1);
+  var pos = dir==="L" ? idx+1 : n-idx;
+  var correct = row[idx];
+  var opool = row.filter(function(a){ return a.name!==correct.name; });
+  var distract = [];
+  while (distract.length<3 && opool.length){ distract.push(opool.splice(Math.floor(Math.random()*opool.length),1)[0]); }
+  var choices = shuffle([correct].concat(distract));
+  return { type:4, row:row, dir:dir, pos:pos, choices:choices, answer: choices.indexOf(correct) };
+}
+function genQ5(){ /* 毛毛虫找规律 */
+  var len = rand(5,8);
+  var asc = Math.random()<0.5;
+  var start = asc ? rand(1, 10-len+1) : rand(len, 10);
+  var seq = [];
+  for (var i=0;i<len;i++) seq.push(asc ? start+i : start-i);
+  var blankIdx = rand(0,len-1);
+  var correct = seq[blankIdx];
+  var options = distinctOpts(correct,0,10);
+  return { type:5, seq:seq, blankIdx:blankIdx, asc:asc, options:options, answer:options.indexOf(correct) };
+}
+function genQ7(){ /* 从哪边数，谁排第几 */
+  var n = rand(6,7);
+  var pool = ANIMALS.slice(), row = [];
+  while (row.length<n){ row.push(pool.splice(Math.floor(Math.random()*pool.length),1)[0]); }
+  var dir = Math.random()<0.5 ? "L" : "R";
+  var idx = rand(0,n-1);
+  var pos = dir==="L" ? idx+1 : n-idx;
+  var options = distinctOpts(pos,1,n);
+  return { type:7, row:row, dir:dir, pos:pos, idx:idx, target:row[idx], options:options, answer:options.indexOf(pos) };
+}
+function genQ8(){ /* 画一画 */
+  var shapes = ["circle","square","triangle"];
+  return { type:8, item:pick(ITEMS), count:rand(3,6), shape:pick(shapes), mode:pick(["same","less","more"]), drawn:0 };
+}
+var GEN = [genQ1,genQ2,genQ3,genQ4,genQ5,null,genQ7,genQ8];
+/* 题型循环：7 种题目一轮循环出现，且不连续重复 */
+function nextType(k){
+  var s = sides[k];
+  if (!s.queue || s.queue.length === 0){
+    s.queue = shuffle([1,2,3,4,5,7,8]);
+    if (s.lastType !== null && s.queue[0] === s.lastType){
+      var j = rand(1,5);
+      var t = s.queue[0]; s.queue[0] = s.queue[j]; s.queue[j] = t;
+    }
+  }
+  s.lastType = s.queue.shift();
+  return s.lastType;
+}
+function newQuestion(k){
+  var f = GEN[nextType(k)-1];
+  if (!f) f = GEN[0]; /* 防御：索引错位时用数一数兜底 */
+  return f();
+}
+
+/* ===== 视图渲染 ===== */
+function arrowHtml(dir){
+  if (dir==="L"){
+    return '<svg class="dir-arrow" viewBox="0 0 24 24" width="44" height="44"><path d="M3 12h16M14 6l6 6-6 6" fill="none" stroke="#22A06B" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  }
+  return '<svg class="dir-arrow" viewBox="0 0 24 24" width="44" height="44"><path d="M21 12H5M10 6l-6 6 6 6" fill="none" stroke="#22A06B" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+}
+function optHtml(options, k){
+  return '<div class="opts">' + options.map(function(t,i){
+    return '<button class="opt" data-side="'+k+'" data-action="opt" data-i="'+i+'">'+t+'</button>';
+  }).join("") + '</div>';
+}
+function viewQ1(q,k){
+  var imgs = "";
+  for (var i=0;i<q.total;i++) imgs += '<img class="ani" src="'+q.animal.img+'" alt="">';
+  return {
+    top: '<div class="task">数一数，一共有几只<span class="inline-ico"><img src="'+q.animal.img+'" alt=""></span>？</div>' +
+         '<div class="pic-grid">'+imgs+'</div>',
+    ans: optHtml(q.options, k)
+  };
+}
+function viewQ2(q,k){
+  var n = Math.max(q.ca, q.cb);
+  var top = "", bottom = "";
+  for (var i=0;i<n;i++){
+    top += '<div class="slot">' + (i<q.ca ? '<img src="'+q.a.img+'" alt="">' : "") + '</div>';
+    bottom += '<div class="slot">' + (i<q.cb ? '<img src="'+q.b.img+'" alt="">' : "") + '</div>';
+  }
+  function cmp(a1, b1, seg){
+    return '<div class="cmp-line">' +
+      '<span class="cmp-mini"><img src="'+a1.img+'" alt=""></span>' +
+      '<span class="cmp-word">比</span>' +
+      '<span class="cmp-mini"><img src="'+b1.img+'" alt=""></span>' +
+      '<span class="cmp-pick">' +
+        '<button class="opt sm" data-side="'+k+'" data-action="opt" data-seg="'+seg+'" data-v="0">多</button>' +
+        '<button class="opt sm" data-side="'+k+'" data-action="opt" data-seg="'+seg+'" data-v="1">少</button>' +
+      '</span>' +
+    '</div>';
+  }
+  return {
+    top: '<div class="q3-pairs">' +
+      '<div class="q3-line" style="grid-template-columns:repeat('+n+',1fr)">'+top+'</div>' +
+      '<div class="q3-line" style="grid-template-columns:repeat('+n+',1fr)">'+bottom+'</div>' +
+      '</div>',
+    ans: '<div class="cmp-line-wrap">' + cmp(q.a, q.b, 1) + cmp(q.b, q.a, 2) + '</div>'
+  };
+}
+function viewQ3(q,k){
+  /* 题干在最上方，三组图片三行且逐列对齐，第三行下方三个图片答案 */
+  var txt = q.ask==="max" ? "谁最多？" : "谁最少？";
+  var n = 0;
+  for (var g=0;g<q.groups.length;g++) if (q.groups[g].count>n) n = q.groups[g].count;
+  var rows = q.groups.map(function(g){
+    var cells = "";
+    for (var i=0;i<n;i++){
+      cells += '<div class="slot">' + (i<g.count ? '<img src="'+g.img+'" alt="">' : "") + '</div>';
+    }
+    return '<div class="q3-line" style="grid-template-columns:repeat('+n+',1fr)">'+cells+'</div>';
+  }).join("");
+  var opts = q.groups.map(function(g,i){
+    return '<button class="q3b-opt" data-side="'+k+'" data-action="opt" data-i="'+i+'">' +
+      '<img src="'+g.img+'" alt=""></button>';
+  }).join("");
+  return {
+    top: '<div class="q3b"><div class="task">'+txt+'</div>'+rows+'</div>',
+    ans: '<div class="q3b-opts">'+opts+'</div>'
+  };
+}
+function viewQ4(q,k){
+  var rowHtml;
+  if (q.dir==="L"){
+    rowHtml = arrowHtml("L") + q.row.map(function(a){ return '<img src="'+a.img+'" alt="">'; }).join("");
+  } else {
+    rowHtml = q.row.map(function(a){ return '<img src="'+a.img+'" alt="">'; }).join("") + arrowHtml("R");
+  }
+  var dirTxt = q.dir==="L" ? "左边" : "右边";
+  var choices = q.choices.map(function(a,i){
+    return '<button class="choice" data-side="'+k+'" data-action="opt" data-i="'+i+'">' +
+      '<img src="'+a.img+'" alt=""></button>';
+  }).join("");
+  return {
+    top: '<div class="task">从'+dirTxt+'数，第 <b>'+q.pos+'</b> 个是谁？</div>' +
+      '<div class="row-animals">'+rowHtml+'</div>',
+    ans: '<div class="opts">'+choices+'</div>'
+  };
+}
+function viewQ5(q,k){
+  /* 毛毛虫节数较多时自动缩小节，保证一行放得下 */
+  var segW = Math.max(60, Math.min(112, Math.floor(720/q.seq.length)));
+  var fz = Math.floor(segW*0.6);
+  var catW = q.seq.length >= 7 ? 132 : 172;
+  var segs = q.seq.map(function(v,i){
+    var st = ' style="width:'+segW+'px;height:'+segW+'px;font-size:'+fz+'px"';
+    if (i===q.blankIdx) return '<span class="seg blank"'+st+'>?</span>';
+    return '<span class="seg"'+st+'>'+v+'</span>';
+  }).join("");
+  return {
+    top: '<div class="caterpillar"><img class="cat-head" style="width:'+catW+'px;height:'+catW+'px" src="'+CATERPILLAR_IMG+'" alt="">'+segs+'</div>',
+    ans: optHtml(q.options, k)
+  };
+}
+function viewQ7(q,k){
+  var rowHtml = q.row.map(function(a,i){
+    var hl = (i===q.idx) ? ' class="row-hl"' : "";
+    return '<img'+hl+' src="'+a.img+'" alt="">';
+  }).join("");
+  if (q.dir==="L"){ rowHtml = arrowHtml("L") + rowHtml; }
+  else { rowHtml = rowHtml + arrowHtml("R"); }
+  var dirTxt = q.dir==="L" ? "左边" : "右边";
+  return {
+    top: '<div class="task">从'+dirTxt+'数，<span class="inline-ico"><img src="'+q.target.img+'" alt=""></span>排第几？</div>' +
+      '<div class="row-animals">'+rowHtml+'</div>',
+    ans: optHtml(q.options, k)
+  };
+}
+function shapeSvg(shape){
+  if (shape === "square"){
+    return '<svg class="shape-svg" viewBox="0 0 50 50"><rect x="6" y="6" width="38" height="38" fill="none" stroke="#333" stroke-width="5"/></svg>';
+  }
+  if (shape === "triangle"){
+    return '<svg class="shape-svg" viewBox="0 0 50 50"><polygon points="25,6 45,44 5,44" fill="none" stroke="#333" stroke-width="5" stroke-linejoin="round"/></svg>';
+  }
+  return '<svg class="shape-svg" viewBox="0 0 50 50"><circle cx="25" cy="25" r="19" fill="none" stroke="#333" stroke-width="5"/></svg>';
+}
+function viewQ8(q,k){
+  var itemTxt = '<span class="inline-ico"><img src="'+q.item.img+'" alt=""></span>';
+  var modeTxt = q.mode==="same" ? "和 "+itemTxt+" 一样多" : "比 "+itemTxt+" "+(q.mode==="more"?"多":"少");
+  var objs = "", draws = "";
+  for (var i=0;i<10;i++){
+    objs += '<div class="q8-cell">' + (i<q.count ? '<img src="'+q.item.img+'" alt="">' : "") + '</div>';
+    draws += '<div class="q8-cell">' + (i<q.drawn ? shapeSvg(q.shape) : "") + '</div>';
+  }
+  return {
+    top: '<div class="task">画 <span class="q8-inline-shape">'+shapeSvg(q.shape)+'</span>，'+modeTxt+'</div>' +
+      '<div class="q8-grid"><div class="q8-row">'+objs+'</div><div class="q8-row">'+draws+'</div></div>',
+    ans: '<button class="q8-shape-btn" data-side="'+k+'" data-action="draw" aria-label="画图形">'+shapeSvg(q.shape)+'</button>'
+  };
+}
+var VIEW = { 1:viewQ1, 2:viewQ2, 3:viewQ3, 4:viewQ4, 5:viewQ5, 7:viewQ7, 8:viewQ8 };
+
+/* ===== 双方状态 ===== */
+var sides = {
+  L: { stats:{total:0,ok:0,err:0}, no:0, q:null, sel:null, picked:null, fbTimer:null, state:"idle", queue:null, lastType:null },
+  R: { stats:{total:0,ok:0,err:0}, no:0, q:null, sel:null, picked:null, fbTimer:null, state:"idle", queue:null, lastType:null }
+};
+
+function renderSide(k){
+  var s = sides[k];
+  s.state = "answering";
+  var box = document.getElementById("qarea"+k);
+  var ab = document.getElementById("ans"+k);
+  var v = VIEW[s.q.type];
+  if (!v){ /* 兜底：未知题型时换成数一数，避免卡在当前题 */
+    s.q = GEN[0]();
+    v = VIEW[1];
+  }
+  var html = v(s.q, k);
+  box.innerHTML = '<div class="q-wrap">' + (html.top || "") + '</div>';
+  ab.innerHTML = html.ans || "";
+  document.getElementById("note"+k).textContent = "";
+  if (s.q.type === 2){
+    if (s.sel){
+      ab.querySelectorAll('[data-action="opt"]').forEach(function(el){
+        var seg = el.getAttribute("data-seg");
+        if (s.sel[seg] === +el.getAttribute("data-v")) el.classList.add("on");
+      });
+    }
+  } else if (s.sel !== null){
+    ab.querySelectorAll('[data-action="opt"]').forEach(function(el){
+      if (+el.getAttribute("data-i") === s.sel) el.classList.add("on");
+    });
+  }
+}
+function nextQuestion(k){
+  var s = sides[k];
+  s.no++;
+  s.q = newQuestion(k);
+  s.sel = null;
+  s.picked = null;
+  document.getElementById("qno"+k).textContent = "第 " + s.no + " 题";
+  renderSide(k);
+}
+function nudge(k, msg){
+  var note = document.getElementById("note"+k);
+  note.textContent = msg;
+  note.classList.remove("shake");
+  void note.offsetWidth;
+  note.classList.add("shake");
+}
+function checkAnswer(k){
+  var s = sides[k];
+  if (s.state !== "answering") return;
+  var q = s.q;
+  var ok;
+  if (q.type === 2){
+    if (!s.sel || s.sel[1] === undefined || s.sel[2] === undefined){ nudge(k, "两个比字框都要选一选哦"); return; }
+    ok = (s.sel[1] === q.ans1 && s.sel[2] === q.ans2);
+  } else if (q.type === 8){
+    if (q.drawn === 0){ nudge(k, "先点下面的图形按钮画一画"); return; }
+    ok = (q.mode === "less" && q.drawn < q.count) ||
+         (q.mode === "same" && q.drawn === q.count) ||
+         (q.mode === "more" && q.drawn > q.count);
+  } else {
+    if (s.sel === null){ nudge(k, "先选一个答案，再点检查"); return; }
+    ok = (s.sel === q.answer);
+  }
+  s.stats.total++;
+  if (ok){ s.stats.ok++; sfxOk(); } else { s.stats.err++; sfxErr(); }
+  showFeedback(k, ok);
+}
+function showFeedback(k, ok){
+  var s = sides[k];
+  s.state = "feedback";
+  var st = document.createElement("div");
+  st.className = "fb-sticker " + (ok ? "ok" : "err");
+  st.innerHTML = ok
+    ? '<svg viewBox="0 0 120 120"><circle cx="60" cy="60" r="54" fill="#22A06B" stroke="#fff" stroke-width="7"/><path d="M36 62 L52 79 L86 43" fill="none" stroke="#fff" stroke-width="13" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+    : '<svg viewBox="0 0 120 120"><circle cx="60" cy="60" r="54" fill="#E5484D" stroke="#fff" stroke-width="7"/><path d="M43 43 L77 77 M77 43 L43 77" fill="none" stroke="#fff" stroke-width="13" stroke-linecap="round"/></svg>';
+  document.getElementById("side"+k).appendChild(st);
+  s.fbTimer = setTimeout(function(){
+    try {
+      st.remove();
+      nextQuestion(k);
+    } catch(e){
+      /* 异常兜底：任何情况下都要进入下一题，避免卡死 */
+      try { nextQuestion(k); } catch(e2){ location.reload(); }
+    }
+  }, 1000);
+}
+function showResult(k){
+  var s = sides[k];
+  s.state = "done";
+  var sideEl = document.getElementById("side"+k);
+  var st = sideEl.querySelector(".fb-sticker");
+  if (st) st.remove();
+  document.getElementById("qarea"+k).innerHTML =
+    '<div class="result-card">' +
+      '<div class="res-line">一共做 <b>'+s.stats.total+'</b> 题</div>' +
+      '<div class="res-line">做对 <b>'+s.stats.ok+'</b> 题</div>' +
+      '<div class="res-line">做错 <b>'+s.stats.err+'</b> 题</div>' +
+    '</div>';
+  document.getElementById("ans"+k).innerHTML = "";
+  document.getElementById("note"+k).textContent = "";
+  document.getElementById("check"+k).classList.add("disabled");
+}
+
+/* ===== 计时 ===== */
+var tickIv = null;
+var minutes = 5, seconds = 0;
+function fmt(t){
+  var m = Math.floor(t/60), s = t%60;
+  return (m<10?"0":"")+m+":"+(s<10?"0":"")+s;
+}
+function renderTimerDigits(){
+  function pad(v){
+    var str = (v<10?"0":"")+v;
+    return '<span>'+str.charAt(0)+'</span><span>'+str.charAt(1)+'</span>';
+  }
+  document.getElementById("minDigits").innerHTML = pad(minutes);
+  document.getElementById("secDigits").innerHTML = pad(seconds);
+}
+function updatePill(t){
+  var pill = document.getElementById("timerPill");
+  pill.textContent = fmt(t);
+  pill.classList.toggle("warn", t<=10);
+}
+function startTimer(secs){
+  var endAt = Date.now() + secs*1000;
+  var last = secs + 1;
+  tickIv = setInterval(function(){
+    var rem = Math.max(0, Math.ceil((endAt - Date.now())/1000));
+    if (rem === last) return;
+    last = rem;
+    updatePill(rem);
+    if (rem > 0 && rem <= 10) sfxTick();
+    if (rem === 0){
+      clearInterval(tickIv); tickIv = null;
+      sfxEnd();
+      endBattle();
+    }
+  }, 200);
+}
+function endBattle(){
+  ["L","R"].forEach(function(k){
+    var s = sides[k];
+    if (s.fbTimer){ clearTimeout(s.fbTimer); s.fbTimer = null; }
+    showResult(k);
+  });
+  setTimeout(showRestart, 3000);
+}
+
+/* ===== 屏幕切换 ===== */
+function showSetup(){
+  document.getElementById("setup").classList.remove("hidden");
+  document.getElementById("battle").classList.add("hidden");
+  document.getElementById("restartOverlay").classList.add("hidden");
+  document.getElementById("countdown").classList.add("hidden");
+}
+function showBattle(){
+  document.getElementById("setup").classList.add("hidden");
+  document.getElementById("battle").classList.remove("hidden");
+  document.getElementById("restartOverlay").classList.add("hidden");
+  document.getElementById("countdown").classList.add("hidden");
+  updatePill(minutes*60+seconds);
+  ["L","R"].forEach(function(k){
+    document.getElementById("qarea"+k).innerHTML = '<div class="prepare">准备开始…</div>';
+    document.getElementById("ans"+k).innerHTML = "";
+    document.getElementById("note"+k).textContent = "";
+    document.getElementById("qno"+k).textContent = "第 1 题";
+    document.getElementById("check"+k).classList.add("disabled");
+  });
+}
+function runCountdown(n, cb){
+  if (n <= 0){ cb(); return; }
+  var cd = document.getElementById("cdNum");
+  cd.textContent = n;
+  cd.classList.remove("cd-num");
+  void cd.offsetWidth;
+  cd.classList.add("cd-num");
+  if (n === 1) sfxGo(); else sfxTick();
+  setTimeout(function(){ runCountdown(n-1, cb); }, 1000);
+}
+function showRestart(){
+  document.getElementById("restartOverlay").classList.remove("hidden");
+}
+function resetAll(){
+  ["L","R"].forEach(function(k){
+    var s = sides[k];
+    s.stats = {total:0,ok:0,err:0};
+    s.no = 0; s.q = null; s.sel = null; s.picked = null; s.queue = null; s.lastType = null;
+    if (s.fbTimer){ clearTimeout(s.fbTimer); s.fbTimer = null; }
+    s.state = "idle";
+  });
+  if (tickIv){ clearInterval(tickIv); tickIv = null; }
+  document.getElementById("setupNote").textContent = "";
+  showSetup();
+}
+
+/* ===== 事件 ===== */
+document.querySelectorAll(".step").forEach(function(btn){
+  btn.addEventListener("click", function(){
+    var unit = btn.getAttribute("data-unit");
+    var dir = btn.getAttribute("data-dir");
+    if (unit === "min"){
+      minutes = (dir === "up") ? (minutes + 1) % 60 : (minutes + 59) % 60;
+    } else {
+      seconds = (dir === "up") ? (seconds + 1) % 60 : (seconds + 59) % 60;
+    }
+    renderTimerDigits();
+  });
+});
+document.getElementById("startBtn").addEventListener("click", function(){
+  var total = minutes*60 + seconds;
+  if (total <= 0){
+    document.getElementById("setupNote").textContent = "时间不能是 0 哦，先设置一下！";
+    var box = document.getElementById("timerBox");
+    box.classList.remove("shake");
+    void box.offsetWidth;
+    box.classList.add("shake");
+    return;
+  }
+  document.getElementById("setupNote").textContent = "";
+  ensureCtx();
+  showBattle();
+  document.getElementById("countdown").classList.remove("hidden");
+  runCountdown(3, function(){
+    document.getElementById("countdown").classList.add("hidden");
+    startTimer(total);
+    ["L","R"].forEach(function(k){
+      nextQuestion(k);
+      document.getElementById("check"+k).classList.remove("disabled");
+    });
+  });
+});
+["L","R"].forEach(function(k){
+  document.getElementById("check"+k).addEventListener("click", function(){ checkAnswer(k); });
+});
+document.getElementById("battle").addEventListener("click", function(e){
+  var el = e.target.closest("[data-action]");
+  if (!el) return;
+  var k = el.getAttribute("data-side");
+  var s = sides[k];
+  if (!s || s.state !== "answering") return;
+  var act = el.getAttribute("data-action");
+  var i = +el.getAttribute("data-i");
+  if (act === "opt"){
+    if (s.q.type === 2){
+      var seg = el.getAttribute("data-seg");
+      var v = +el.getAttribute("data-v");
+      if (!s.sel) s.sel = {};
+      s.sel[seg] = v;
+    } else {
+      s.sel = i;
+    }
+    renderSide(k);
+  } else if (act === "pick"){
+    if (!s.picked) s.picked = new Set();
+    if (s.picked.has(i)) s.picked.delete(i); else s.picked.add(i);
+    renderSide(k);
+  } else if (act === "draw"){
+    if (s.q.drawn >= 10){ nudge(k, "最多只能画 10 个哦"); return; }
+    s.q.drawn++;
+    renderSide(k);
+  }
+});
+document.getElementById("restartBtn").addEventListener("click", resetAll);
+
+/* ===== 启动 ===== */
+renderTimerDigits();
+})();
+</script>
+</body>
+</html>
